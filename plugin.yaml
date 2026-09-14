@@ -1,0 +1,6 @@
+name: ambi-realtime
+version: 0.1.0
+description: Realtime Ambiguous Workspace notifications with durable handoff and unread recovery.
+author: Troy Anderson
+provides_tools: []
+provides_hooks: []

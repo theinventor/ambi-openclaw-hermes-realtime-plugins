@@ -10,3 +10,4 @@ coverage/
 *.log
 .test-artifacts/
 dist/
+*.local.json

@@ -1,0 +1,14 @@
+{
+  "id": "ambi-realtime",
+  "name": "Ambiguous Realtime",
+  "description": "Realtime Workspace notifications using the official Ambiguous CLI, with independent unread recovery.",
+  "version": "0.1.0",
+  "activation": { "onStartup": true },
+  "skills": ["./skills"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": { "settingsFile": { "type": "string", "description": "Absolute path to settings.local.json (contains a credential-file path, never the credential)." } },
+    "required": ["settingsFile"]
+  }
+}
