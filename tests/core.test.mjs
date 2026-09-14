@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { spawn } from 'node:child_process';
+import readline from 'node:readline';
 import { validateSettings, credential, redact } from '../lib/config.mjs';
 import { AmbiClient } from '../lib/client.mjs';
 import { Journal, atomicJson } from '../lib/journal.mjs';
@@ -63,6 +64,24 @@ test('CLI handles text output, split UTF-8 and malformed JSON distinctly', async
   assert.deepEqual(rows, [{ summary: 'caf\u00e9' }]);
   await assert.rejects(client.run(['invalid']), /invalid JSON/);
   await assert.rejects(client.run(['partial'], { onLine() {} }), /incomplete/);
+  const diagnostics = [];
+  await assert.rejects(client.run(['fail'], { onDiagnostic: line => diagnostics.push(line) }), /exited 2/);
+  assert.deepEqual(diagnostics, ['Bearer [REDACTED]']);
+});
+
+test('journal never dispatches an unsaved event or discards a pending row on disk errors', t => {
+  const journal = new Journal(setup(t)); journal.open();
+  const save = journal.save.bind(journal);
+  journal.save = () => { throw new Error('disk full'); };
+  assert.throws(() => journal.enqueue(event()), /disk full/);
+  assert.equal(journal.rows.size, 0);
+  journal.save = save; journal.enqueue(event());
+  journal.save = () => { throw new Error('disk full'); };
+  assert.throws(() => journal.accept('notification-one'), /disk full/);
+  assert.ok(journal.rows.get('notification-one').event);
+  assert.throws(() => journal.fail('notification-one'), /disk full/);
+  assert.equal(journal.rows.get('notification-one').attempts, 0);
+  journal.close();
 });
 
 test('hung CLI is bounded, escalated and reaped', async t => {
@@ -169,4 +188,28 @@ test('bridge exits on EOF and on startup failure, without a live stdin leak', as
     const code = await Promise.race([closed, delay(4000).then(() => { throw new Error(`Bridge did not exit: ${errors}`); })]);
     assert.equal(code, wrongUser ? 1 : 0);
   }
+});
+
+test('a late bridge acknowledgement cannot accept a subsequent handoff attempt', async t => {
+  const settings = setup(t, { handoffMs: 300, retryMs: 10 });
+  const settingsFile = path.join(path.dirname(settings.configFile), 'settings.json');
+  atomicJson(settingsFile, settings);
+  const child = spawn(process.execPath, ['bin/ambi-plugins.mjs', 'bridge', '--settings', settingsFile], {
+    env: { ...process.env, AMBI_FIXTURE_EVENTS: JSON.stringify([event()]) }, stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  t.after(() => child.kill());
+  child.stderr.resume();
+  const closed = new Promise(resolve => child.once('close', resolve));
+  const frames = [];
+  const lines = readline.createInterface({ input: child.stdout });
+  lines.on('line', line => frames.push(JSON.parse(line)));
+  await until(() => frames.length >= 2);
+  assert.notEqual(frames[0].handoff, frames[1].handoff);
+  child.stdin.write(JSON.stringify({ handoff: frames[0].handoff, ok: true }) + '\n');
+  await delay(30);
+  const rows = new Map(JSON.parse(fs.readFileSync(settings.stateFile, 'utf8')).rows);
+  assert.ok(rows.get('notification-one').event);
+  child.stdin.write(JSON.stringify({ handoff: frames[1].handoff, ok: true }) + '\n');
+  await until(() => new Map(JSON.parse(fs.readFileSync(settings.stateFile, 'utf8')).rows).get('notification-one').acceptedAt);
+  child.stdin.end(); await closed; lines.close();
 });

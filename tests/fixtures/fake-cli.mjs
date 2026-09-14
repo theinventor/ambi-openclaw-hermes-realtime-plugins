@@ -17,5 +17,8 @@ else if (mode === 'unicode') {
 } else if (mode === 'partial') process.stdout.write('{"unfinished":');
 else if (mode === 'api') console.log(JSON.stringify({ id: 'user-test', workspace_id: 'workspace-test' }));
 else if (mode === 'notifications' && args[1] === 'poll') console.log(JSON.stringify({ events: [], has_more: false }));
-else if (mode === 'notifications' && args[1] === 'watch') setInterval(() => {}, 1000);
+else if (mode === 'notifications' && args[1] === 'watch') {
+  for (const event of JSON.parse(process.env.AMBI_FIXTURE_EVENTS ?? '[]')) console.log(JSON.stringify(event));
+  setInterval(() => {}, 1000);
+}
 else throw new Error('Unexpected fixture command');

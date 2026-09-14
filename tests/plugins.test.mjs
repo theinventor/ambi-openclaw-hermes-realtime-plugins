@@ -58,7 +58,11 @@ test('installer is repeatable, keeps backups outside discovery, and excludes cre
   assert.deepEqual(fs.readdirSync(path.join(home, 'plugins')), ['ambi-realtime']);
   const installed = JSON.parse(fs.readFileSync(first.settingsFile, 'utf8'));
   assert.equal(installed.configFile, options.config);
+  installed.allowedActors = ['operator']; installed.reconcileMs = 75000;
+  fs.writeFileSync(first.settingsFile, JSON.stringify(installed));
   const second = install('hermes', options, identity, deps);
+  assert.deepEqual(JSON.parse(fs.readFileSync(second.settingsFile, 'utf8')).allowedActors, ['operator']);
+  assert.equal(JSON.parse(fs.readFileSync(second.settingsFile, 'utf8')).reconcileMs, 75000);
   assert.ok(fs.existsSync(path.join(second.backup, 'plugin/plugin.yaml')));
   assert.ok(fs.existsSync(path.join(second.backup, 'skill/SKILL.md')));
   assert.deepEqual(fs.readdirSync(path.join(home, 'plugins')), ['ambi-realtime']);
@@ -67,4 +71,11 @@ test('installer is repeatable, keeps backups outside discovery, and excludes cre
   assert.throws(() => install('hermes', options, identity, { runImpl() { throw new Error('npm failed'); } }), /npm failed/);
   assert.equal(fs.readFileSync(path.join(home, 'config.yaml'), 'utf8'), before);
   assert.ok(fs.existsSync(path.join(first.target, 'plugin.yaml')));
+  assert.throws(() => install('hermes', options, { ...identity, id: 'other-user' }, deps), /another identity/);
+  fs.writeFileSync(path.join(first.target, 'original-marker'), 'keep');
+  fs.renameSync(path.join(home, 'skills'), path.join(home, 'original-skills'));
+  fs.writeFileSync(path.join(home, 'skills'), 'obstruction');
+  assert.throws(() => install('hermes', options, identity, deps));
+  assert.equal(fs.readFileSync(path.join(first.target, 'original-marker'), 'utf8'), 'keep');
+  assert.equal(fs.readFileSync(path.join(home, 'config.yaml'), 'utf8'), before);
 });
