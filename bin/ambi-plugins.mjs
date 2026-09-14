@@ -45,7 +45,7 @@ async function main() {
     const me = await client.verify();
     const page = await client.poll();
     const status = await client.run(['api', 'GET', `/api/agents/${me.id}/transport`]);
-    console.log(JSON.stringify({ authenticated: true, user: me.id, workspace: me.workspace_id, liveConnected: status.connected, unreadPageCount: page.events?.length, settingsFile: settings.settingsFile }, null, 2)); return;
+    console.log(JSON.stringify({ authenticated: true, user: me.id, workspace: me.workspace_id, serverReportedLiveConnected: status.connected, unreadPageCount: page.events?.length, settingsFile: settings.settingsFile, note: 'Check transport logs and actual replies; server status alone is not end-to-end verification.' }, null, 2)); return;
   }
   if (command !== 'bridge') throw new Error(`Unknown command: ${command}`);
   const pending = new Map();

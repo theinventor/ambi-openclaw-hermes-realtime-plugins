@@ -107,8 +107,6 @@ class AmbiguousAdapter(BasePlatformAdapter):
             backoff = min(backoff * 2, 30)
 
     async def _deliver(self, event, prompt, session_key):
-        content = event.get("content") or {}
-        resource = event.get("resource") or {}
         actor = event.get("actor") or {}
         group = session_key
         source = self.build_source(

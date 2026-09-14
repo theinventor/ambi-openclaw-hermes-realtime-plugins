@@ -28,7 +28,7 @@ export function register(api, { Pump = EventPump, readSettings = loadSettings } 
           logger.warn?.(`Ambiguous ${data.stage}: ${data.error}`);
           ctx?.serviceHealth?.reportFailure?.(new Error(data.error));
         } else {
-          logger.info?.(`Ambiguous ${kind}${data.id ? ` notification=${data.id}` : ''}`);
+          logger.info?.(`Ambiguous ${kind}${data.id ? ` notification=${data.id}` : ''}${data.message ? ` ${data.message}` : ''}`);
           if (kind === 'accepted') ctx?.serviceHealth?.clearFailure?.();
         }
       } });
