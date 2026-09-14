@@ -1,0 +1,23 @@
+{
+  "name": "ambi-openclaw-hermes-realtime-plugins",
+  "version": "0.1.0",
+  "description": "Realtime Ambiguous Workspace triggers for OpenClaw and Hermes",
+  "type": "module",
+  "license": "MIT",
+  "repository": "github:theinventor/ambi-openclaw-hermes-realtime-plugins",
+  "engines": { "node": ">=22" },
+  "bin": { "ambi-plugins": "bin/ambi-plugins.mjs" },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "test:hermes": "python3 -m unittest discover -s tests -p 'test_*.py' -v",
+    "test:compat:openclaw": "node scripts/compat-openclaw.mjs",
+    "test:compat:hermes": "python3 scripts/compat-hermes.py",
+    "check": "node --check plugins/openclaw/index.js && node --check bin/ambi-plugins.mjs && python3 -m compileall -q plugins/hermes scripts/compat-hermes.py"
+  },
+  "dependencies": { "ambiguous": "0.9.1", "yaml": "2.9.1" },
+  "openclaw": {
+    "plugin": { "id": "ambi-realtime", "label": "Ambiguous Realtime" },
+    "extensions": ["./plugins/openclaw/index.js"],
+    "runtimeExtensions": ["./plugins/openclaw/index.js"]
+  }
+}
