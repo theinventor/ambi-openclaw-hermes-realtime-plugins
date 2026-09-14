@@ -140,7 +140,7 @@ test('event routing isolates threads and rejects malformed or excluded events', 
 test('independent unread reconciliation survives a hung watcher; failures retry durably', async t => {
   const settings = setup(t); const delivered = [], logs = []; let polls = 0, attempts = 0;
   const client = { verify: async () => {}, watch: (_, signal) => blocked(signal), poll: async cursor => {
-    polls++; return cursor ? { events: [event('two')], has_more: false } : { events: [event()], has_more: true, next_cursor: 'page-two' };
+    polls++; return cursor ? { events: [event('two')], has_more: false } : { events: [event('bad;id'), event()], has_more: true, next_cursor: 'page-two' };
   } };
   const pump = new EventPump(settings, async e => {
     if (++attempts === 1) throw new Error('Gateway temporarily unavailable');
@@ -150,6 +150,7 @@ test('independent unread reconciliation survives a hung watcher; failures retry 
   await until(() => delivered.length === 2); await delay(100);
   assert.equal(delivered.length, 2); assert.ok(polls >= 4);
   assert.ok(logs.some(([kind, data]) => kind === 'error' && data.stage === 'handoff'));
+  assert.ok(logs.some(([kind, data]) => kind === 'error' && data.stage === 'event'));
   await pump.stop(); assert.equal(fs.existsSync(`${settings.stateFile}.lock`), false);
 });
 

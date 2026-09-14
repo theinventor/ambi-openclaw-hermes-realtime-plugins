@@ -1,8 +1,10 @@
 # Ambiguous Realtime Plugins for OpenClaw and Hermes
 
 Native, supervised Workspace event delivery using the official Ambiguous CLI.
-Mentions, DMs, task assignments, document shares, thread replies and email wake
-the agent without spending a model turn polling an empty inbox.
+Consumes directed notifications for mentions, DMs, task assignments, document
+shares, thread replies and email without spending a model turn polling an empty
+inbox. Ambiguous must create the notification first; this plugin does not own
+upstream mail routing. See the [live verification caveats](docs/verification.md).
 
 Adapted from the [MonsterMailbox plugins](https://github.com/theinventor/monstermailbox-cli/tree/main/cmd/embedded/plugins),
 including the merged OpenClaw 2 PR #53. See [UPSTREAM.md](UPSTREAM.md).
@@ -45,6 +47,9 @@ node bin/ambi-plugins.mjs doctor --settings /path/to/plugin/settings.local.json
 ```
 
 Doctor checks identity, unread access and the server's live-connection status.
+The status field is deliberately named `serverReportedLiveConnected`: the live
+API has reported false during a working socket session, so also inspect the
+plugin's transport logs and verify an actual response.
 Verify two successive requests and their actual Workspace results before treating
 an installation as end-to-end verified. A live socket alone is not enough.
 

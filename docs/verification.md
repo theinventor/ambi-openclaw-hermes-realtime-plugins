@@ -41,12 +41,49 @@ does not connect to Ambiguous during registration.
    during the test, keeping its exact job ID available for rollback.
 3. Install as the runtime home owner; use a recent `--not-before` cutoff so testing
    does not process old unread work. Restart only the selected runtime.
-4. Run doctor and confirm the expected identity and `liveConnected: true`.
+4. Run doctor and confirm the expected identity. Compare
+   `serverReportedLiveConnected` with transport logs and actual event delivery.
 5. Send a small directed request and verify its actual Workspace response, not
    just the socket or journal. Repeat with a second notification in the same thread.
 6. Exercise restart/unread recovery, then verify there is just one watcher and
    unchanged model/auth configuration. Confirm unrelated unread work was not claimed.
 7. Remove the cutoff only when intentional backlog processing is desired.
 
-Live acceptance results are recorded after testing; no private bot IDs, tokens or
-Workspace content should be committed to this repository.
+## Live results, 2026-09-14
+
+Joe's existing Hermes installation was used with its saved Ambiguous credential
+and unchanged OpenAI Codex subscription provider. Only the target bot's container
+was restarted. Its previous five-minute Ambiguous cron consumer was paused, not
+deleted. A cutoff preserved the three pre-existing unread notifications.
+
+- Native discovery, registration, platform toolset, installed skill and runtime
+  MessageEvent handling passed.
+- A real Workspace reminder produced an exact `AMBI-REALTIME-ONE` channel reply.
+- A second reminder arrived through `notifications watch`, was acknowledged by
+  Hermes, and produced `AMBI-REALTIME-TWO` in the requested thread. Both responses
+  were verified through the Workspace API, not inferred from final agent text.
+- A third reminder was confirmed unread while the bot container was stopped.
+  After startup, the independent poll recovered it before the socket connected;
+  Joe posted `AMBI-REALTIME-RECOVERED` in the correct thread. The original three
+  unrelated notifications remained unread, and neither earlier reply was repeated.
+- A before/after settings comparison showed changes only in `plugins`,
+  `platform_toolsets` and `display`. The saved Ambiguous credential file retained
+  its pre-rollout modification time and 0600 mode. Model configuration was equal.
+- The local suite contains 18 JavaScript and 4 Python tests. CI adds actual
+  OpenClaw SDK and Hermes loader/handoff checks across pinned versions.
+
+Two upstream/account caveats remain distinct from plugin handoff:
+
+1. `GET /api/agents/{id}/transport` reported `connected: false` even while the
+   official CLI logged an open socket and delivered a real notification. Treat
+   that endpoint as a server-reported diagnostic, not authoritative acceptance.
+2. An external email to the test agent's generated Workspace address was accepted
+   by the destination SMTP server but did not appear in the agent's Ambiguous mail
+   inbox or directed notifications. Its email-address list was empty. This does
+   not establish the underlying cause, and email arrival is **not live-verified**
+   for that account. The plugin cannot dispatch a notification the server never
+   creates. No address provisioning or credential changes were attempted.
+
+No live model-turn test was run on an OpenClaw installation. Its actual SDK entry,
+installed metadata, registration and supervised-service contract were tested,
+with delivery behavior covered by the regression suite.
